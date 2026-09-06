@@ -1,11 +1,38 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
 )
 
+type User struct {
+	Name string `json:"name"`
+	Age  int    `json:"age"`
+}
+
+func createUserHandler(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+	var u User
+	err := json.NewDecoder(r.Body).Decode(&u)
+
+	if err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+	if u.Name == "" {
+		http.Error(w, "name is required", http.StatusBadRequest)
+		return
+	}
+	if u.Age <= 0 {
+		http.Error(w, "Age must be positive", http.StatusBadRequest)
+		return
+
+	}
+
+	fmt.Fprintf(w, "Данные нового польозователя: имя - %s,возраст - %d\n", u.Name, u.Age)
+}
 func helloHandler(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Fprintf(w, "Hello,baby!!!")
@@ -46,6 +73,7 @@ func main() {
 	mux.HandleFunc("GET /bye", byeHandler)
 	mux.HandleFunc("GET /sum", sumHandler)
 	mux.HandleFunc("GET /users/{id}", idHandler)
+	mux.HandleFunc("POST /users", createUserHandler)
 
 	http.ListenAndServe(":8080", mux)
 

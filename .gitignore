@@ -1,7 +1,7 @@
-.exe
-.dll
-.so
-.dylib
+*.exe
+*.dll
+*.so
+*.dylib
 .DS_Store
 .vscode/
 .idea/
