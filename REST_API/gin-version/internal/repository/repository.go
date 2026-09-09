@@ -1,30 +1,32 @@
-package main
+package repository
+
+import "rest-api-gin/internal/models"
 
 type UserRepository struct {
-	users  []User
+	users  []models.User
 	nextId int
 }
 
 func NewUserRepository() *UserRepository {
 	return &UserRepository{
-		users:  []User{},
+		users:  []models.User{},
 		nextId: 1,
 	}
 
 }
-func (r *UserRepository) Create(user User) User {
+func (r *UserRepository) Create(user models.User) models.User {
 	user.ID = r.nextId
 	r.nextId++
 	r.users = append(r.users, user)
 	return user
 
 }
-func (r *UserRepository) FindByName(name string) (User, bool) {
+func (r *UserRepository) FindByName(name string) (models.User, bool) {
 	for _, u := range r.users {
 		if u.Name == name {
 			return u, true
 
 		}
 	}
-	return User{}, false
+	return models.User{}, false
 }
