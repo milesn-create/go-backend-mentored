@@ -10,6 +10,16 @@ import (
 
 var userService *UserService
 
+// createUserhandler godoc
+// @Summary Создание нового пользователя
+// @Tags users
+// @Accept json
+// @Produce plain
+// @Param user body User true "Данные нового пользоавателя"
+// @Success 200 {string} string "Пользователь успешно создан"
+// @Failure      400  {string}  string  "Некорректный JSON в теле запроса"
+// @Failure      409  {string}  string  "Пользователь с таким именем уже существует"
+// @Router /users [post]
 func createUserHandler(c *gin.Context) {
 	var u User
 	err := c.ShouldBindJSON(&u)
