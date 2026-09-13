@@ -10,6 +10,7 @@ import (
 type UserRepository interface {
 	Create(user models.User) (models.User, error)
 	FindByName(name string) (models.User, bool, error)
+	FindByID(id int) (models.User, bool, error)
 }
 type InMemoryUserRepository struct {
 	users  []models.User
@@ -35,6 +36,14 @@ func (r *InMemoryUserRepository) FindByName(name string) (models.User, bool, err
 		if u.Name == name {
 			return u, true, nil
 
+		}
+	}
+	return models.User{}, false, nil
+}
+func (r *InMemoryUserRepository) FindByID(id int) (models.User, bool, error) {
+	for _, u := range r.users {
+		if u.ID == id {
+			return u, true, nil
 		}
 	}
 	return models.User{}, false, nil
@@ -68,9 +77,20 @@ func (r *PostgresUserRepository) FindByName(name string) (models.User, bool, err
 		if errors.Is(err, sql.ErrNoRows) {
 			return models.User{}, false, nil
 		}
-		return models.User{}, false, fmt.Errorf("failed to select : %w", err)
+		return models.User{}, false, fmt.Errorf("failed to select by name: %w", err)
 	}
 
 	return u, true, nil
 
+}
+func (r *PostgresUserRepository) FindByID(id int) (models.User, bool, error) {
+	var u models.User
+	err := r.db.QueryRow("SELECT * FROM users WHERE id = $1", id).Scan(&u.ID, &u.Name, &u.Age)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return models.User{}, false, nil
+		}
+		return models.User{}, false, fmt.Errorf("failed to select by id: %w", err)
+	}
+	return u, true, nil
 }

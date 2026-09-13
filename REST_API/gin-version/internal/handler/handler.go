@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"rest-api-gin/internal/models"
@@ -56,8 +57,23 @@ func SumHandler(c *gin.Context) {
 	c.String(200, "Сумма = %d\n", sum)
 }
 func IdHandler(c *gin.Context) {
-	id := c.Param("id")
-	c.String(200, "ID пользователя: %s\n", id)
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.String(http.StatusBadRequest, "id - not an integer")
+		return
+	}
+	user, err := UserService.FindByID(id)
+	if err != nil {
+		if errors.Is(err, service.ErrUserNotFound) {
+			c.String(http.StatusNotFound, err.Error())
+			return
+
+		}
+		c.String(http.StatusBadRequest, err.Error())
+		return
+
+	}
+	c.String(200, "По данному айди найден пользователь: ID - %d, Имя - %s, возраст - %d\n", user.ID, user.Name, user.Age)
 
 }
 func LoggerMiddleware(c *gin.Context) {

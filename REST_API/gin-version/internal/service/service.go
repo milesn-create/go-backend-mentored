@@ -17,6 +17,19 @@ func NewUserService(r repository.UserRepository) *UserService {
 
 }
 
+var ErrUserNotFound = errors.New("user not found\n")
+
+func (s *UserService) FindByID(id int) (models.User, error) {
+	user, exists, err := s.repo.FindByID(id)
+	if err != nil {
+		return models.User{}, err
+	}
+	if !exists {
+		return models.User{}, ErrUserNotFound
+	}
+	return user, nil
+}
+
 func (s *UserService) CreateUser(user models.User) (models.User, error) {
 	u, exists, err := s.repo.FindByName(user.Name)
 	if err != nil {
