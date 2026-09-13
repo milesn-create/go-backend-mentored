@@ -38,7 +38,7 @@ func IsAnagram(s string, t string) bool {
 	sort.Slice(runes2, func(i, j int) bool {
 		return runes2[i] < runes2[j]
 	})
-	if runes1 == runes2 {
+	if string(runes1) == string(runes2) {
 		return true
 	}
 	return false
