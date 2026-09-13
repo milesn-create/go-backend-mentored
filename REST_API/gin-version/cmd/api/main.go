@@ -1,7 +1,9 @@
 package main
 
 import (
+	"log"
 	_ "rest-api-gin/docs"
+	"rest-api-gin/internal/database"
 	"rest-api-gin/internal/handler"
 	"rest-api-gin/internal/repository"
 	"rest-api-gin/internal/service"
@@ -17,6 +19,12 @@ import (
 // @host localhost:8080
 // @BasePath /
 func main() {
+	db, err := database.NewConnection()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+	log.Println("Successfully connected to database!")
 	repo := repository.NewUserRepository()
 	handler.UserService = service.NewUserService(repo)
 	router := gin.Default()
