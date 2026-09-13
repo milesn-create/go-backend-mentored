@@ -25,7 +25,7 @@ func main() {
 	}
 	defer db.Close()
 	log.Println("Successfully connected to database!")
-	repo := repository.NewUserRepository()
+	repo := repository.NewPostgresUserRepository(db)
 	handler.UserService = service.NewUserService(repo)
 	router := gin.Default()
 	router.Use(handler.LoggerMiddleware)

@@ -7,10 +7,10 @@ import (
 )
 
 type UserService struct {
-	repo *repository.UserRepository
+	repo repository.UserRepository
 }
 
-func NewUserService(r *repository.UserRepository) *UserService {
+func NewUserService(r repository.UserRepository) *UserService {
 	return &UserService{
 		repo: r,
 	}
@@ -18,11 +18,14 @@ func NewUserService(r *repository.UserRepository) *UserService {
 }
 
 func (s *UserService) CreateUser(user models.User) (models.User, error) {
-	u, exists := s.repo.FindByName(user.Name)
+	u, exists, err := s.repo.FindByName(user.Name)
+	if err != nil {
+		return models.User{}, err
+	}
 	if exists {
 		return u, errors.New("user already exists")
 
 	}
-	return s.repo.Create(user), nil
+	return s.repo.Create(user)
 
 }
