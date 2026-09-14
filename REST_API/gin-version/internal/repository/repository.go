@@ -5,16 +5,72 @@ import (
 	"errors"
 	"fmt"
 	"rest-api-gin/internal/models"
+	"strings"
 )
+
+var ErrUserNotFound = errors.New("user not found")
+var ErrUserNotUpdate = errors.New("failed to update user")
 
 type UserRepository interface {
 	Create(user models.User) (models.User, error)
 	FindByName(name string) (models.User, bool, error)
 	FindByID(id int) (models.User, bool, error)
+	UpdateField(id int, fields models.UserUpdate) (models.User, error)
 }
+
+func (r *PostgresUserRepository) UpdateField(id int, fields models.UserUpdate) (models.User, error) {
+	setParts := []string{}
+	args := []any{}
+	argIndex := 1
+	if fields.Name != nil {
+		setParts = append(setParts, fmt.Sprintf("name = $%d", argIndex))
+		args = append(args, *fields.Name)
+		argIndex++
+
+	}
+	if fields.Age != nil {
+		setParts = append(setParts, fmt.Sprintf("age = $%d", argIndex))
+		args = append(args, *fields.Age)
+		argIndex++
+
+	}
+	query := "UPDATE users SET " + strings.Join(setParts, ", ") + fmt.Sprintf(" WHERE id = $%d RETURNING id,name,age", argIndex)
+	args = append(args, id)
+	var u models.User
+	err := r.db.QueryRow(query, args...).Scan(&u.ID, &u.Name, &u.Age)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return models.User{}, ErrUserNotFound
+
+		}
+		return models.User{}, fmt.Errorf("%w: %v", ErrUserNotUpdate, err)
+
+	}
+	return u, nil
+
+}
+
 type InMemoryUserRepository struct {
 	users  []models.User
 	nextId int
+}
+
+func (r *InMemoryUserRepository) UpdateField(id int, fields models.UserUpdate) (models.User, error) {
+
+	for i := range r.users {
+		if r.users[i].ID == id {
+			if fields.Age != nil {
+				r.users[i].Age = *fields.Age
+			}
+			if fields.Name != nil {
+				r.users[i].Name = *fields.Name
+			}
+			return r.users[i], nil
+
+		}
+	}
+	return models.User{}, ErrUserNotFound
+
 }
 
 func NewInMemoryUserRepository() *InMemoryUserRepository {

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"rest-api-gin/internal/models"
+	"rest-api-gin/internal/repository"
 	"rest-api-gin/internal/service"
 	"strconv"
 
@@ -64,7 +65,7 @@ func IdHandler(c *gin.Context) {
 	}
 	user, err := UserService.FindByID(id)
 	if err != nil {
-		if errors.Is(err, service.ErrUserNotFound) {
+		if errors.Is(err, repository.ErrUserNotFound) {
 			c.String(http.StatusNotFound, err.Error())
 			return
 
@@ -74,6 +75,44 @@ func IdHandler(c *gin.Context) {
 
 	}
 	c.String(200, "По данному айди найден пользователь: ID - %d, Имя - %s, возраст - %d\n", user.ID, user.Name, user.Age)
+
+}
+func UpdateHandler(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.String(http.StatusBadRequest, "id - not an integer")
+		return
+	}
+	var fields models.UserUpdate
+	err = c.ShouldBindJSON(&fields)
+	if err != nil {
+		c.String(http.StatusBadRequest, "Bad Request\n")
+		return
+	}
+	updateUser, err := UserService.UpdateUser(id, fields)
+	if err != nil {
+		if errors.Is(err, repository.ErrUserNotFound) {
+			c.String(http.StatusNotFound, err.Error())
+			return
+		}
+		if errors.Is(err, repository.ErrUserNotUpdate) {
+			c.String(http.StatusBadRequest, err.Error())
+			return
+
+		}
+		if errors.Is(err, service.ErrNameAlreadyExists) {
+			c.String(http.StatusConflict, err.Error())
+			return
+		}
+		if errors.Is(err, service.ErrInvalidAge) {
+			c.String(http.StatusBadRequest, err.Error())
+			return
+
+		}
+		c.String(http.StatusBadRequest, err.Error())
+		return
+	}
+	c.String(http.StatusOK, fmt.Sprintf("Обновленные данные пользователя: Id : %d, имя : %s, возраст: %d\n", updateUser.ID, updateUser.Name, updateUser.Age))
 
 }
 func LoggerMiddleware(c *gin.Context) {

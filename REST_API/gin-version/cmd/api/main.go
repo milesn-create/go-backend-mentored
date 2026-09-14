@@ -35,6 +35,7 @@ func main() {
 	router.GET("/users/:id", handler.IdHandler)
 	router.POST("/users", handler.AuthMiddleware, handler.CreateUserHandler)
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	router.PATCH("/users/:id", handler.AuthMiddleware, handler.UpdateHandler)
 
 	router.Run(":8080")
 

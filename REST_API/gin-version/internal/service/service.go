@@ -17,15 +17,46 @@ func NewUserService(r repository.UserRepository) *UserService {
 
 }
 
-var ErrUserNotFound = errors.New("user not found\n")
+var ErrNameAlreadyExists = errors.New("this name already exists")
+var ErrInvalidAge = errors.New("age must be > 0")
 
+func (s *UserService) UpdateUser(id int, fields models.UserUpdate) (models.User, error) {
+	if fields.Age != nil && *fields.Age <= 0 {
+		return models.User{}, ErrInvalidAge
+	}
+
+	if fields.Name != nil {
+		user, err := s.FindByID(id)
+		if err != nil {
+			return models.User{}, err
+		}
+		if user.Name != *fields.Name {
+			_, exists, err := s.repo.FindByName(*fields.Name)
+			if err != nil {
+				return models.User{}, err
+			}
+			if exists {
+				return models.User{}, ErrNameAlreadyExists
+			}
+
+		}
+
+	}
+
+	updateUser, err := s.repo.UpdateField(id, fields)
+	if err != nil {
+		return models.User{}, err
+	}
+	return updateUser, nil
+
+}
 func (s *UserService) FindByID(id int) (models.User, error) {
 	user, exists, err := s.repo.FindByID(id)
 	if err != nil {
 		return models.User{}, err
 	}
 	if !exists {
-		return models.User{}, ErrUserNotFound
+		return models.User{}, repository.ErrUserNotFound
 	}
 	return user, nil
 }
