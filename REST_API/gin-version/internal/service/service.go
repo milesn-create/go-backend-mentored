@@ -50,6 +50,14 @@ func (s *UserService) UpdateUser(id int, fields models.UserUpdate) (models.User,
 	return updateUser, nil
 
 }
+func (s *UserService) DeleteUser(id int) (models.User, error) {
+	user, err := s.repo.DeleteUser(id)
+	if err != nil {
+		return models.User{}, err
+	}
+	return user, nil
+
+}
 func (s *UserService) FindByID(id int) (models.User, error) {
 	user, exists, err := s.repo.FindByID(id)
 	if err != nil {

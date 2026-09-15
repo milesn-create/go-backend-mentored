@@ -9,15 +9,55 @@ import (
 )
 
 var ErrUserNotFound = errors.New("user not found")
-var ErrUserNotUpdate = errors.New("failed to update user")
 
 type UserRepository interface {
 	Create(user models.User) (models.User, error)
 	FindByName(name string) (models.User, bool, error)
 	FindByID(id int) (models.User, bool, error)
 	UpdateField(id int, fields models.UserUpdate) (models.User, error)
+	DeleteUser(id int) (models.User, error)
+}
+type InMemoryUserRepository struct {
+	users  []models.User
+	nextId int
 }
 
+func NewInMemoryUserRepository() *InMemoryUserRepository {
+	return &InMemoryUserRepository{
+		users:  []models.User{},
+		nextId: 1,
+	}
+
+}
+
+func (r *PostgresUserRepository) DeleteUser(id int) (models.User, error) {
+	var u models.User
+
+	err := r.db.QueryRow("DELETE FROM users WHERE id = $1 RETURNING id, name, age", id).Scan(&u.ID, &u.Name, &u.Age)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return models.User{}, ErrUserNotFound
+
+		}
+		return models.User{}, fmt.Errorf("failed to delete user : %w", err)
+	}
+	return u, nil
+
+}
+func (r *InMemoryUserRepository) DeleteUser(id int) (models.User, error) {
+	for i := range r.users {
+		if r.users[i].ID == id {
+			deleteUser := r.users[i]
+			r.users = append(r.users[:i], r.users[(i+1):]...)
+
+			return deleteUser, nil
+
+		}
+
+	}
+	return models.User{}, ErrUserNotFound
+
+}
 func (r *PostgresUserRepository) UpdateField(id int, fields models.UserUpdate) (models.User, error) {
 	setParts := []string{}
 	args := []any{}
@@ -43,16 +83,11 @@ func (r *PostgresUserRepository) UpdateField(id int, fields models.UserUpdate) (
 			return models.User{}, ErrUserNotFound
 
 		}
-		return models.User{}, fmt.Errorf("%w: %v", ErrUserNotUpdate, err)
+		return models.User{}, fmt.Errorf("failed to update user : %w", err)
 
 	}
 	return u, nil
 
-}
-
-type InMemoryUserRepository struct {
-	users  []models.User
-	nextId int
 }
 
 func (r *InMemoryUserRepository) UpdateField(id int, fields models.UserUpdate) (models.User, error) {
@@ -73,13 +108,6 @@ func (r *InMemoryUserRepository) UpdateField(id int, fields models.UserUpdate) (
 
 }
 
-func NewInMemoryUserRepository() *InMemoryUserRepository {
-	return &InMemoryUserRepository{
-		users:  []models.User{},
-		nextId: 1,
-	}
-
-}
 func (r *InMemoryUserRepository) Create(user models.User) (models.User, error) {
 	user.ID = r.nextId
 	r.nextId++
