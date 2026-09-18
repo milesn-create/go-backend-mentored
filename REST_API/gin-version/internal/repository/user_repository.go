@@ -17,6 +17,43 @@ type UserRepository interface {
 	UpdateField(id int, fields models.UserUpdate) (models.User, error)
 	DeleteUser(id int) (models.User, error)
 }
+
+func (r *PostgresUserRepository) UpdateField(id int, fields models.UserUpdate) (models.User, error) {
+	setParts := []string{}
+	args := []any{}
+	argIndex := 1
+	if fields.Name != nil {
+		setParts = append(setParts, fmt.Sprintf("name = $%d", argIndex))
+		args = append(args, *fields.Name)
+		argIndex++
+
+	}
+	if fields.Age != nil {
+		setParts = append(setParts, fmt.Sprintf("age = $%d", argIndex))
+		args = append(args, *fields.Age)
+		argIndex++
+
+	}
+	query := "UPDATE users SET " + strings.Join(setParts, ", ") + fmt.Sprintf(" WHERE id = $%d RETURNING id,name,age", argIndex)
+	args = append(args, id)
+	var u models.User
+	err := r.db.QueryRow(query, args...).Scan(&u.ID, &u.Name, &u.Age)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return models.User{}, ErrUserNotFound
+
+		}
+		return models.User{}, fmt.Errorf("failed to update user : %w", err)
+
+	}
+	return u, nil
+
+}
+
+func NewPostgresOrderRepository(DB *sql.DB) *PostgresOrderRepository {
+	return &PostgresOrderRepository{db: DB}
+}
+
 type InMemoryUserRepository struct {
 	users  []models.User
 	nextId int
@@ -56,37 +93,6 @@ func (r *InMemoryUserRepository) DeleteUser(id int) (models.User, error) {
 
 	}
 	return models.User{}, ErrUserNotFound
-
-}
-func (r *PostgresUserRepository) UpdateField(id int, fields models.UserUpdate) (models.User, error) {
-	setParts := []string{}
-	args := []any{}
-	argIndex := 1
-	if fields.Name != nil {
-		setParts = append(setParts, fmt.Sprintf("name = $%d", argIndex))
-		args = append(args, *fields.Name)
-		argIndex++
-
-	}
-	if fields.Age != nil {
-		setParts = append(setParts, fmt.Sprintf("age = $%d", argIndex))
-		args = append(args, *fields.Age)
-		argIndex++
-
-	}
-	query := "UPDATE users SET " + strings.Join(setParts, ", ") + fmt.Sprintf(" WHERE id = $%d RETURNING id,name,age", argIndex)
-	args = append(args, id)
-	var u models.User
-	err := r.db.QueryRow(query, args...).Scan(&u.ID, &u.Name, &u.Age)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return models.User{}, ErrUserNotFound
-
-		}
-		return models.User{}, fmt.Errorf("failed to update user : %w", err)
-
-	}
-	return u, nil
 
 }
 
