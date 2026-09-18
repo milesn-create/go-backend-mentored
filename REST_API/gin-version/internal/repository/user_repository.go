@@ -50,10 +50,6 @@ func (r *PostgresUserRepository) UpdateField(id int, fields models.UserUpdate) (
 
 }
 
-func NewPostgresOrderRepository(DB *sql.DB) *PostgresOrderRepository {
-	return &PostgresOrderRepository{db: DB}
-}
-
 type InMemoryUserRepository struct {
 	users  []models.User
 	nextId int
