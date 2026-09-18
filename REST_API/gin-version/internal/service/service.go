@@ -4,10 +4,15 @@ import (
 	"errors"
 	"rest-api-gin/internal/models"
 	"rest-api-gin/internal/repository"
+
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 type UserService struct {
 	repo repository.UserRepository
+}
+type OrderService struct {
+	repo repository.OrderRepository
 }
 
 func NewUserService(r repository.UserRepository) *UserService {
@@ -16,10 +21,26 @@ func NewUserService(r repository.UserRepository) *UserService {
 	}
 
 }
+func NewOrderService(r repository.OrderRepository) *OrderService {
+	return &OrderService{repo: r}
+}
 
 var ErrNameAlreadyExists = errors.New("this name already exists")
 var ErrInvalidAge = errors.New("age must be > 0")
 
+func (s *OrderService) CreateOrder(order models.CreateOrderRequest) (models.OrderResponse, error) {
+	var pgErr *pgconn.PgError
+	resultResponse, err := s.repo.CreateOrder(order)
+	if err != nil {
+		if errors.As(err, &pgErr) && pgErr.Code == "23503" {
+			return models.OrderResponse{}, repository.ErrUserNotFound
+		}
+		return models.OrderResponse{}, err
+
+	}
+	return resultResponse, nil
+
+}
 func (s *UserService) UpdateUser(id int, fields models.UserUpdate) (models.User, error) {
 	if fields.Age != nil && *fields.Age <= 0 {
 		return models.User{}, ErrInvalidAge
