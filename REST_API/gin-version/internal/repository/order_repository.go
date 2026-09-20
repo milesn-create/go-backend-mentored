@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"rest-api-gin/internal/models"
 	"strings"
@@ -10,6 +11,7 @@ import (
 
 type OrderRepository interface {
 	CreateOrder(order models.CreateOrderRequest) (models.OrderResponse, error)
+	GetOrderByID(id int) (models.OrderResponse, error)
 }
 type PostgresOrderRepository struct {
 	db *sql.DB
@@ -17,6 +19,55 @@ type PostgresOrderRepository struct {
 
 func NewPostgresOrderRepository(DB *sql.DB) *PostgresOrderRepository {
 	return &PostgresOrderRepository{db: DB}
+}
+
+var ErrOrderNotExists = errors.New("Order not exists")
+
+func (r *PostgresOrderRepository) GetOrderByID(id int) (models.OrderResponse, error) {
+	rows, err := r.db.Query(
+		`SELECT 
+			o.id ,
+			o.user_id,
+    		o.status,
+    		o.created_at,
+    		oi.id,
+    		oi.product_name,
+    		oi.price,
+    		oi.quantity
+		FROM orders o
+    		LEFT JOIN order_items oi ON o.id = oi.order_id
+		WHERE o.id = $1`, id)
+	if err != nil {
+		return models.OrderResponse{}, fmt.Errorf("failed SELECT FROM orders LEFT JOIN order_items: %w", err)
+	}
+	defer rows.Close()
+	var order models.Order
+	var orderItems []models.OrderItem
+	orderExists := false
+	for rows.Next() {
+		orderExists = true
+		var itemID *int
+		var productName *string
+		var price *int
+		var quantity *int
+
+		err := rows.Scan(&order.ID, &order.UserID, &order.Status, &order.CreatedAt, &itemID, &productName, &price, &quantity)
+		if err != nil {
+			return models.OrderResponse{}, fmt.Errorf("failed scan order row: %w", err)
+		}
+		if itemID != nil {
+			orderItems = append(orderItems, models.OrderItem{ID: *itemID, OrderId: order.ID, ProductName: *productName, Price: price, Quantity: *quantity})
+		}
+
+	}
+	if err := rows.Err(); err != nil {
+		return models.OrderResponse{}, fmt.Errorf("failed rows.Next(): %w", err)
+	}
+	if !orderExists {
+		return models.OrderResponse{}, ErrOrderNotExists
+	}
+	return models.OrderResponse{Order: order, Items: orderItems}, nil
+
 }
 
 func (r *PostgresOrderRepository) CreateOrder(order models.CreateOrderRequest) (models.OrderResponse, error) {

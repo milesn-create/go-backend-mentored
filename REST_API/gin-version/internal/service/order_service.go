@@ -28,3 +28,10 @@ func (s *OrderService) CreateOrder(order models.CreateOrderRequest) (models.Orde
 	return resultResponse, nil
 
 }
+func (s *OrderService) GetOrderById(id int) (models.OrderResponse, error) {
+	resultOrderResponse, err := s.repo.GetOrderByID(id)
+	if err != nil {
+		return models.OrderResponse{}, err
+	}
+	return resultOrderResponse, nil
+}

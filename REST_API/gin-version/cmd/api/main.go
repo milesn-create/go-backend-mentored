@@ -43,6 +43,8 @@ func main() {
 	router.DELETE("/users/:id", handler.AuthMiddleware, handler.DeleteHandler)
 
 	router.POST("/orders", handler.AuthMiddleware, handler.CreateOrderHandler)
+	router.GET("/orders/:id", handler.GetOrderByIdHandler)
+
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	router.Run(":8080")
