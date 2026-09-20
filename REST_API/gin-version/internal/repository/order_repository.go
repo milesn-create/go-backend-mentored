@@ -28,16 +28,19 @@ func (r *PostgresOrderRepository) CreateOrder(order models.CreateOrderRequest) (
 	columns := []string{"user_id"}
 	placeholders := []string{"$1"}
 	args := []any{order.UserID}
+
 	if order.Status != nil {
 		columns = append(columns, "status")
 		args = append(args, *order.Status)
 		placeholders = append(placeholders, fmt.Sprintf("$%d", len(args)))
 
 	}
-	query := "INSERT INTO orders(" + strings.Join(columns, ", ") + ") VALUES(" + strings.Join(placeholders, ", ") + ") RETURNING id, CURRENT_TIMESTAMP"
+
+	query := "INSERT INTO orders(" + strings.Join(columns, ", ") + ") VALUES(" + strings.Join(placeholders, ", ") + ") RETURNING id, CURRENT_TIMESTAMP,status"
 	var createdAt time.Time
 	var orderId int
-	err = tr.QueryRow(query, args...).Scan(&orderId, &createdAt)
+	var status string
+	err = tr.QueryRow(query, args...).Scan(&orderId, &createdAt, &status)
 	if err != nil {
 		return models.OrderResponse{}, fmt.Errorf("failed insert into orders: %w", err)
 	}
@@ -57,6 +60,6 @@ func (r *PostgresOrderRepository) CreateOrder(order models.CreateOrderRequest) (
 		return models.OrderResponse{}, fmt.Errorf("failed commit transaction : %w", err)
 	}
 
-	return models.OrderResponse{Order: models.Order{ID: orderId, UserID: order.UserID, Status: order.Status, CreatedAt: createdAt}, Items: OrderItems}, nil
+	return models.OrderResponse{Order: models.Order{ID: orderId, UserID: order.UserID, Status: &status, CreatedAt: createdAt}, Items: OrderItems}, nil
 
 }

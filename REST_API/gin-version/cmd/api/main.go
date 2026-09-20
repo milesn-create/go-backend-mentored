@@ -25,18 +25,25 @@ func main() {
 	}
 	defer db.Close()
 	log.Println("Successfully connected to database!")
-	repo := repository.NewPostgresUserRepository(db)
-	handler.UserService = service.NewUserService(repo)
+	user_repo := repository.NewPostgresUserRepository(db)
+	handler.UserService = service.NewUserService(user_repo)
+	order_repo := repository.NewPostgresOrderRepository(db)
+	handler.OrderService = service.NewOrderService(order_repo)
+
 	router := gin.Default()
+
 	router.Use(handler.LoggerMiddleware)
 	router.GET("/hello", handler.HelloHandler)
 	router.GET("/bye", handler.ByeHandler)
 	router.GET("/sum", handler.SumHandler)
+
 	router.GET("/users/:id", handler.IdHandler)
 	router.POST("/users", handler.AuthMiddleware, handler.CreateUserHandler)
-	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	router.PATCH("/users/:id", handler.AuthMiddleware, handler.UpdateHandler)
 	router.DELETE("/users/:id", handler.AuthMiddleware, handler.DeleteHandler)
+
+	router.POST("/orders", handler.AuthMiddleware, handler.CreateOrderHandler)
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	router.Run(":8080")
 
