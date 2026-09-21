@@ -37,7 +37,7 @@ func (s *UserService) CreateUser(user models.User) (models.User, error) {
 		return models.User{}, err
 	}
 	if exists {
-		return u, errors.New("user already exists")
+		return u, ErrNameAlreadyExists
 
 	}
 	return s.repo.Create(user)
